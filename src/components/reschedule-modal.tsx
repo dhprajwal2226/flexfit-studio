@@ -23,17 +23,18 @@ export function RescheduleModal({
 }: RescheduleModalProps) {
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [from] = useState(() => new Date().toISOString());
 
   const utils = trpc.useUtils();
 
   // Get available classes with the same name
-  const { data: availableClasses } = trpc.classes.list.useQuery(
-    {
-      from: new Date().toISOString(),
-    },
-    {
-      enabled: isOpen,
-    }
+  const {
+    data: availableClasses,
+    isLoading: classesLoading,
+    isError: classesErrored,
+  } = trpc.classes.list.useQuery(
+    { from },
+    { enabled: isOpen }
   );
 
   // Filter to only same-name classes (excluding the original)
@@ -90,7 +91,15 @@ export function RescheduleModal({
         )}
 
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {sameNameClasses.length ? (
+          {classesLoading ? (
+            <p className="muted text-sm text-center py-4">
+              Loading available classes...
+            </p>
+          ) : classesErrored ? (
+            <p style={{ color: "#f87171", fontSize: "0.875rem" }} className="text-center py-4">
+              Couldn't load available classes. Please try again.
+            </p>
+          ) : sameNameClasses.length ? (
             sameNameClasses.map((cls) => (
               <button
                 key={cls.id}

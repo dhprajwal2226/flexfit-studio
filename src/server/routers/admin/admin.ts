@@ -9,7 +9,7 @@ import {
   checkins,
   membershipPlans,
 } from "@/db/schema";
-import { router, adminProcedure } from "../trpc";
+import { router, adminProcedure } from "../../trpc";
 
 export const adminRouter = router({
   stats: adminProcedure.query(async ({ ctx }) => {

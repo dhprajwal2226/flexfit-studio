@@ -38,6 +38,9 @@ export default function CompanyDetailsPage() {
       setShowMemberForm(false);
       refetch();
     },
+    onError: (err) => {
+      alert(err.message);
+    },
   });
 
   const unlinkMutation = trpc.adminCompanies.unlinkMember.useMutation({

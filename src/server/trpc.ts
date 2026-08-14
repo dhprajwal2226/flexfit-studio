@@ -1,4 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import { ZodError } from "zod";
 import superjson from "superjson";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
@@ -31,7 +32,19 @@ export async function createContext() {
 
 export type Context = Awaited<ReturnType<typeof createContext>>;
 
-const t = initTRPC.context<Context>().create({ transformer: superjson });
+const t = initTRPC.context<Context>().create({
+  transformer: superjson,
+  errorFormatter({ shape, error }) {
+    if (error.cause instanceof ZodError) {
+      const firstIssue = error.cause.issues[0];
+      return {
+        ...shape,
+        message: firstIssue?.message ?? "Invalid input.",
+      };
+    }
+    return shape;
+  },
+});
 
 export const router = t.router;
 export const publicProcedure = t.procedure;

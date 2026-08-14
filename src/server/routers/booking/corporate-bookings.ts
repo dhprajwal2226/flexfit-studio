@@ -9,7 +9,9 @@ import {
   checkins,
   users,
 } from "@/db/schema";
-import { router, protectedProcedure, staffProcedure } from "../trpc";
+import { router, protectedProcedure, staffProcedure } from "../../trpc";
+import { hoursUntil } from "../../services/time";
+import { checkClassBookable } from "../../services/booking-validation";
 
 /**
  * Corporate members may cancel free of charge up to this many hours before
@@ -17,9 +19,6 @@ import { router, protectedProcedure, staffProcedure } from "../trpc";
  */
 export const CORPORATE_FREE_CANCELLATION_HOURS = 24;
 
-function hoursUntil(iso: string, now = new Date()): number {
-  return (new Date(iso).getTime() - now.getTime()) / 36e5;
-}
 
 async function getCompanyForMember(
   db: typeof import("@/db").db,
@@ -71,27 +70,11 @@ export const corporateBookingsRouter = router({
   book: protectedProcedure
     .input(z.object({ classId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const cls = await ctx.db
-        .select()
-        .from(classes)
-        .where(eq(classes.id, input.classId))
-        .get();
-
-      if (!cls) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Class not found." });
+      const classCheck = await checkClassBookable(ctx.db, input.classId);
+      if (!classCheck.ok) {
+        throw new TRPCError({ code: classCheck.code, message: classCheck.message });
       }
-      if (cls.cancelled) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This class has been cancelled.",
-        });
-      }
-      if (hoursUntil(cls.startsAt) <= 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This class has already started.",
-        });
-      }
+      const cls = classCheck.cls;
 
       const existing = await ctx.db
         .select()

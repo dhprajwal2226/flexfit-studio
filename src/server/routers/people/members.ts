@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { users, memberships, membershipPlans, bookings } from "@/db/schema";
-import { router, protectedProcedure, staffProcedure, adminProcedure } from "../trpc";
+import { router, protectedProcedure, staffProcedure, adminProcedure } from "../../trpc";
 
 export const membersRouter = router({
   profile: protectedProcedure.query(async ({ ctx }) => {
@@ -71,9 +71,12 @@ export const membersRouter = router({
         })
         .from(users)
         .where(
-          input.q.trim()
-            ? or(like(users.name, term), like(users.email, term))
-            : undefined,
+          and(
+            eq(users.role, "member"),
+            input.q.trim()
+              ? or(like(users.name, term), like(users.email, term))
+              : undefined,
+          ),
         )
         .limit(input.limit);
     }),

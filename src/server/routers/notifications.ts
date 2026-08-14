@@ -44,6 +44,21 @@ export const notificationsRouter = router({
 
     return { ok: true };
   }),
+  markAsRead: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(notifications)
+        .set({ read: true })
+        .where(
+          and(
+            eq(notifications.id, input.id),
+            eq(notifications.userId, ctx.user.id)
+          )
+        );
+
+      return { ok: true };
+    }),
 
   broadcast: adminProcedure
     .input(

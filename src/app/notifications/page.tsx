@@ -4,19 +4,26 @@ import { trpc } from "@/lib/trpc";
 import { formatDateTime } from "@/lib/format";
 
 export default function NotificationsPage() {
+  const utils = trpc.useUtils();
+
   const { data: notifications, isLoading, error } = trpc.notifications.list.useQuery(
     undefined,
     { retry: false }
   );
+
   const markAllAsRead = trpc.notifications.markAllAsRead.useMutation({
     onSuccess: () => {
-      // Refresh the list
       utils.notifications.list.invalidate();
       utils.notifications.unreadCount.invalidate();
     },
   });
 
-  const utils = trpc.useUtils();
+  const markAsRead = trpc.notifications.markAsRead.useMutation({
+    onSuccess: () => {
+      utils.notifications.list.invalidate();
+      utils.notifications.unreadCount.invalidate();
+    },
+  });
 
   if (isLoading) return <p className="muted">Loading...</p>;
   if (error) return <p className="muted">{error.message}</p>;
@@ -48,6 +55,12 @@ export default function NotificationsPage() {
               className="panel p-4"
               style={{
                 opacity: notif.read ? 0.6 : 1,
+                cursor: notif.read ? "default" : "pointer",
+              }}
+              onClick={() => {
+                if (!notif.read) {
+                  markAsRead.mutate({ id: notif.id });
+                }
               }}
             >
               <div className="flex items-start justify-between gap-4">
